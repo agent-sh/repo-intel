@@ -1,0 +1,12 @@
+{
+  "skills": [
+    "git-mapping"
+  ],
+  "commands": [
+    "git-map"
+  ],
+  "lib": [
+    "git-map",
+    "collectors"
+  ]
+}

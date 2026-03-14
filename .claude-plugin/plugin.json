@@ -1,0 +1,12 @@
+{
+  "name": "git-map",
+  "version": "0.1.0",
+  "description": "Git history analysis with cached, incrementally-updatable artifact",
+  "keywords": ["git", "history", "analysis", "hotspots", "coupling", "ownership"],
+  "author": {
+    "name": "Avi Fenesh",
+    "url": "https://github.com/avifenesh"
+  },
+  "repository": "https://github.com/agent-sh/git-map",
+  "license": "MIT"
+}
