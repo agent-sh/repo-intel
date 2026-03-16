@@ -1,13 +1,13 @@
 ---
-description: Analyze git history with cached, incrementally-updatable artifact - hotspots, coupling, ownership, bus factor, bugspots, norms, areas
+description: Analyze git history with cached, incrementally-updatable artifact - hotspots, bugspots, coldspots, coupling, ownership, bus-factor, norms, areas, contributors, ai-ratio, release-info, health, file-history, conventions, test-gaps, diff-risk, doc-drift, recent-ai
 codex-description: 'Use when user asks to "analyze git history", "show hotspots", "file coupling", "code ownership", "bus factor", "bugspots", "area health", "project norms", "git map init/update/status/query". Builds and queries a cached repo-intel artifact.'
-argument-hint: "init|update|status|query <hotspots|bugspots|coldspots|coupling|ownership|bus-factor|norms|areas|contributors|ai-ratio|release-info|health|file-history|conventions|test-gaps|diff-risk|doc-drift|recent-ai> [--since=<date>] [--max-commits=<n>] [--limit=<n>] [--adjust-for-ai] [--min-changes=<n>] [<file>] [<path>]"
+argument-hint: "init|update|status|query <hotspots|bugspots|coldspots|coupling|ownership|bus-factor|norms|areas|contributors|ai-ratio|release-info|health|file-history|conventions|test-gaps|diff-risk|doc-drift|recent-ai> [--since=<date>] [--max-commits=<n>] [--limit=<n>] [--adjust-for-ai] [--min-changes=<n>] [--path-filter=<path>] [<file>] [<path>]"
 allowed-tools: Bash(git:*), Bash(npm:*), Read, Task, Write
 ---
 
 # /git-map - Git History Analysis
 
-Analyze git history to surface hotspots, coupling, ownership, bus factor risk, bugspots, norms, and area health using the agent-analyzer binary.
+Analyze git history to surface hotspots, bugspots, coldspots, coupling, ownership, bus-factor, norms, areas, contributors, AI ratio, release info, health, file history, conventions, test gaps, diff risk, doc drift, and recent AI changes using the agent-analyzer binary.
 
 ## Arguments
 
@@ -18,8 +18,11 @@ Parse from `$ARGUMENTS`:
 - `--since=<date>`: Limit history to commits after this date (for `init`)
 - `--max-commits=<n>`: Limit number of commits to analyze (for `init`)
 - `--limit=<n>`: Limit result rows (for queries)
-- `<file>`: File path argument (for `coupling`, `ownership`)
-- `<path>`: Path filter (for `ownership`)
+- `--adjust-for-ai`: Adjust bus factor score to account for AI-assisted commits (for `bus-factor`)
+- `--min-changes=<n>`: Minimum change count threshold (for `test-gaps`)
+- `--path-filter=<path>`: Filter AI ratio results to a specific path (for `ai-ratio`)
+- `<file>`: File path argument (for `coupling`, `file-history`, `diff-risk`)
+- `<path>`: Path filter (for `ownership`, `ai-ratio`)
 
 Examples:
 

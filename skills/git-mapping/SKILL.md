@@ -1,7 +1,7 @@
 ---
 name: git-mapping
 description: "Use when user asks to \"analyze git history\", \"show hotspots\", \"coldspots\", \"file coupling\", \"code ownership\", \"bus factor\", \"bugspots\", \"area health\", \"project norms\", \"test gaps\", \"untested files\", \"diff risk\", \"stale docs\", \"doc drift\", \"recent AI changes\", \"AI ratio\", \"contributors\", \"repo health\", \"release cadence\", \"file history\", \"conventions\", \"git map init/update/status/query\". Builds and queries a cached repo-intel artifact using the agent-analyzer binary."
-argument-hint: "[action] [query-type] [--since=<date>] [--max-commits=<n>] [--limit=<n>] [<file>]"
+argument-hint: "[action] [query-type] [--since=<date>] [--max-commits=<n>] [--limit=<n>] [--adjust-for-ai] [--min-changes=<n>] [--path-filter=<path>] [<file>]"
 ---
 
 # Git Mapping Skill
