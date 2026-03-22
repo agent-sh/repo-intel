@@ -1,54 +1,57 @@
 ---
-description: Analyze git history with cached, incrementally-updatable artifact - hotspots, bugspots, coldspots, coupling, ownership, bus-factor, norms, areas, contributors, ai-ratio, release-info, health, file-history, conventions, test-gaps, diff-risk, doc-drift, recent-ai
-codex-description: 'Use when user asks to "analyze git history", "show hotspots", "file coupling", "code ownership", "bus factor", "bugspots", "area health", "project norms", "git map init/update/status/query". Builds and queries a cached repo-intel artifact.'
-argument-hint: "init|update|status|query <hotspots|bugspots|coldspots|coupling|ownership|bus-factor|norms|areas|contributors|ai-ratio|release-info|health|file-history|conventions|test-gaps|diff-risk|doc-drift|recent-ai> [--since=<date>] [--max-commits=<n>] [--limit=<n>] [--adjust-for-ai] [--min-changes=<n>] [--path-filter=<path>] [<file>] [<path>]"
+description: Unified static analysis - git history, AST symbols, project metadata, and doc-code sync via agent-analyzer
+codex-description: 'Use when user asks to "analyze git history", "show hotspots", "file coupling", "code ownership", "bus factor", "bugspots", "repo-intel init/update/status/query", "show symbols", "find dependents", "pain spots". Builds and queries a cached repo-intel artifact.'
+argument-hint: "init|update|status|query <type> [--since=<date>] [--max-commits=<n>] [--limit=<n>] [--adjust-for-ai] [--min-changes=<n>] [--path-filter=<path>] [<file>] [<path>]"
 allowed-tools: Bash(git:*), Bash(npm:*), Read, Task, Write
 ---
 
-# /git-map - Git History Analysis
+# /repo-intel - Static Analysis
 
-Analyze git history to surface hotspots, bugspots, coldspots, coupling, ownership, bus-factor, norms, areas, contributors, AI ratio, release info, health, file history, conventions, test gaps, diff risk, doc drift, and recent AI changes using the agent-analyzer binary.
+Analyze and query the cached repo-intel artifact powered by agent-analyzer. Covers git history, AST symbols, project metadata, and doc-code sync.
 
 ## Arguments
 
 Parse from `$ARGUMENTS`:
 
 - **Action**: `init` | `update` | `status` | `query` (default: `status`)
-- **Query subcommand** (when action is `query`): `hotspots` | `bugspots` | `coldspots` | `coupling` | `ownership` | `bus-factor` | `norms` | `areas` | `contributors` | `ai-ratio` | `release-info` | `health` | `file-history` | `conventions` | `test-gaps` | `diff-risk` | `doc-drift` | `recent-ai`
+- **Query subcommand** (when action is `query`): `hotspots` | `bugspots` | `coldspots` | `coupling` | `ownership` | `bus-factor` | `norms` | `areas` | `contributors` | `ai-ratio` | `release-info` | `health` | `file-history` | `conventions` | `test-gaps` | `diff-risk` | `doc-drift` | `recent-ai` | `onboard` | `can-i-help` | `painspots` | `symbols` | `dependents` | `stale-docs`
 - `--since=<date>`: Limit history to commits after this date (for `init`)
 - `--max-commits=<n>`: Limit number of commits to analyze (for `init`)
 - `--limit=<n>`: Limit result rows (for queries)
-- `--adjust-for-ai`: Adjust bus factor score to account for AI-assisted commits (for `bus-factor`)
+- `--adjust-for-ai`: Adjust bus factor score (for `bus-factor`)
 - `--min-changes=<n>`: Minimum change count threshold (for `test-gaps`)
-- `--path-filter=<path>`: Filter AI ratio results to a specific path (for `ai-ratio`)
-- `<file>`: File path argument (for `coupling`, `file-history`, `diff-risk`)
-- `<path>`: Path filter (for `ownership`, `ai-ratio`)
+- `--path-filter=<path>`: Filter results to a specific path (for `ai-ratio`)
+- `<file>`: File path argument (for `coupling`, `file-history`, `diff-risk`, `symbols`, `ownership`)
+- `<symbol>`: Symbol name (for `dependents`)
 
 Examples:
 
-- `/git-map init`
-- `/git-map init --since=2024-01-01`
-- `/git-map update`
-- `/git-map status`
-- `/git-map query hotspots`
-- `/git-map query hotspots --limit=20`
-- `/git-map query bugspots`
-- `/git-map query coupling src/auth/login.ts`
-- `/git-map query ownership src/`
-- `/git-map query bus-factor`
-- `/git-map query norms`
-- `/git-map query areas`
+- `/repo-intel init`
+- `/repo-intel init --since=2024-01-01`
+- `/repo-intel update`
+- `/repo-intel status`
+- `/repo-intel query hotspots`
+- `/repo-intel query hotspots --limit=20`
+- `/repo-intel query bugspots`
+- `/repo-intel query coupling src/auth/login.ts`
+- `/repo-intel query ownership src/`
+- `/repo-intel query bus-factor`
+- `/repo-intel query painspots`
+- `/repo-intel query symbols src/auth/login.ts`
+- `/repo-intel query dependents createUser`
+- `/repo-intel query onboard`
+- `/repo-intel query stale-docs`
 
 ## Execution
 
-### 1) Load Git Map Module
+### 1) Load Repo Intel Module
 
 ```javascript
 const { getPluginRoot } = require('@agentsys/lib/cross-platform');
-const pluginRoot = getPluginRoot('git-map');
-if (!pluginRoot) { console.error('[ERROR] Could not locate git-map plugin root'); process.exit(1); }
-const gitMap = require(`${pluginRoot}/lib/git-map`);
-const queries = require(`${pluginRoot}/lib/git-map/queries`);
+const pluginRoot = getPluginRoot('repo-intel');
+if (!pluginRoot) { console.error('[ERROR] Could not locate repo-intel plugin root'); process.exit(1); }
+const repoIntel = require(`${pluginRoot}/lib/repo-intel`);
+const queries = require(`${pluginRoot}/lib/repo-intel/queries`);
 ```
 
 ### 2) Parse Arguments
@@ -77,17 +80,17 @@ const cwd = process.cwd();
 let result;
 
 if (action === 'init') {
-  result = await gitMap.init(cwd, {
+  result = await repoIntel.init(cwd, {
     since: options.since,
     maxCommits: options.maxCommits ? parseInt(options.maxCommits, 10) : undefined
   });
 } else if (action === 'update') {
-  result = await gitMap.update(cwd);
+  result = await repoIntel.update(cwd);
 } else if (action === 'status') {
-  result = gitMap.status(cwd);
+  result = repoIntel.status(cwd);
 } else if (action === 'query') {
-  if (!gitMap.exists(cwd)) {
-    console.log('[ERROR] No repo-intel found. Run /git-map init first.');
+  if (!repoIntel.exists(cwd)) {
+    console.log('[ERROR] No repo-intel found. Run /repo-intel init first.');
     process.exit(1);
   }
 
@@ -97,6 +100,8 @@ if (action === 'init') {
     result = queries.hotspots(cwd, { limit });
   } else if (queryType === 'bugspots') {
     result = queries.bugspots(cwd, { limit });
+  } else if (queryType === 'coldspots') {
+    result = queries.coldspots(cwd, { limit });
   } else if (queryType === 'coupling') {
     if (!queryArg) { console.log('[ERROR] coupling requires a file path argument'); process.exit(1); }
     result = queries.coupling(cwd, queryArg);
@@ -109,8 +114,6 @@ if (action === 'init') {
     result = queries.norms(cwd);
   } else if (queryType === 'areas') {
     result = queries.areas(cwd);
-  } else if (queryType === 'coldspots') {
-    result = queries.coldspots(cwd, { limit });
   } else if (queryType === 'contributors') {
     result = queries.contributors(cwd, { limit });
   } else if (queryType === 'ai-ratio') {
@@ -133,8 +136,22 @@ if (action === 'init') {
     result = queries.docDrift(cwd, { limit });
   } else if (queryType === 'recent-ai') {
     result = queries.recentAi(cwd, { limit });
+  } else if (queryType === 'onboard') {
+    result = queries.onboard(cwd);
+  } else if (queryType === 'can-i-help') {
+    result = queries.canIHelp(cwd);
+  } else if (queryType === 'painspots') {
+    result = queries.painspots(cwd, { limit });
+  } else if (queryType === 'symbols') {
+    if (!queryArg) { console.log('[ERROR] symbols requires a file path'); process.exit(1); }
+    result = queries.symbols(cwd, queryArg);
+  } else if (queryType === 'dependents') {
+    if (!queryArg) { console.log('[ERROR] dependents requires a symbol name'); process.exit(1); }
+    result = queries.dependents(cwd, queryArg, options.file);
+  } else if (queryType === 'stale-docs') {
+    result = queries.staleDocs(cwd, { limit });
   } else {
-    console.log('[ERROR] Unknown query. Use: hotspots | bugspots | coldspots | coupling <file> | ownership <path> | bus-factor | norms | areas | contributors | ai-ratio | release-info | health | file-history <file> | conventions | test-gaps | diff-risk <files> | doc-drift | recent-ai');
+    console.log('[ERROR] Unknown query. Use: hotspots | bugspots | coldspots | coupling <file> | ownership <path> | bus-factor | norms | areas | contributors | ai-ratio | release-info | health | file-history <file> | conventions | test-gaps | diff-risk <files> | doc-drift | recent-ai | onboard | can-i-help | painspots | symbols <file> | dependents <symbol> | stale-docs');
     process.exit(1);
   }
 } else {
@@ -143,31 +160,31 @@ if (action === 'init') {
 }
 
 if (result?.success === false) {
-  console.log(`[ERROR] ${result.error || 'git-map failed'}`);
+  console.log(`[ERROR] ${result.error || 'repo-intel failed'}`);
   process.exit(1);
 }
 
 if (action === 'status' && !result.exists) {
-  console.log('No repo-intel found. Run /git-map init to generate one.');
+  console.log('No repo-intel found. Run /repo-intel init to generate one.');
   process.exit(0);
 }
 ```
 
 ### 4) Output Result
 
-Use the git-mapping skill to format and display results:
+Use the repo-intel skill to format and display results:
 
 ```javascript
 await Task({
-  subagent_type: 'git-map:git-mapping',
-  prompt: `Format and display git-map result. Action: ${action}. Data: ${JSON.stringify(result)}`
+  subagent_type: 'repo-intel:repo-intel',
+  prompt: `Format and display repo-intel result. Action: ${action}. QueryType: ${queryType || 'none'}. Data: ${JSON.stringify(result)}`
 });
 ```
 
 ## Output Format
 
 ```markdown
-## Git Map Result
+## Repo Intel Result
 
 **Action**: init|update|status|query
 **Commits analyzed**: <count>

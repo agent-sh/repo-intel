@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed plugin from `git-map` to `repo-intel` - consolidated with `repo-map` into a single unified plugin
+- Command renamed from `/git-map` to `/repo-intel`
+- Skill renamed from `git-mapping` to `repo-intel`
+- Library moved from `lib/git-map/` to `lib/repo-intel/`
+- `update()` now uses `--map-file` flag (correct agent-analyzer CLI interface)
+
+### Added
+
+- `onboard` and `can-i-help` query types added to command and skill
+- `stale-docs` query type (Phase 4 doc-code sync)
+- `agents/map-validator.md` - lightweight output validator (ported from repo-map plugin)
+- `package.json` with `npm test` smoke script
+
 ## [0.1.0] - 2026-03-22
 
 ### Added
@@ -18,18 +33,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Cached artifact `repo-intel.json` stored in `.claude/` or `.opencode/` for instant repeated queries
 - Incremental update support via `/git-map update` (only new commits since last scan)
 - Query flags: `--min-changes`, `--path-filter`, `--adjust-for-ai`
-- Consumer plugin integration: `deslop`, `sync-docs`, `drift-detect`, `audit-project`, `next-task`, `enhance`, `ship`, `onboard`, `can-i-help`
-- Scoring formulas documented: hotspot score, recency window (90-day), staleness threshold, area health classifications (healthy / needs-attention / at-risk)
 
 ### Changed
 
 - Rewrote `queries.js` from 389-line self-contained JS implementation to thin binary delegation via `runQuery()`; all analysis logic now lives in the agent-analyzer Rust binary
 - Renamed cache file from `git-map.json` to `repo-intel.json` to reflect the broader artifact scope
-- Updated `index.js` `status()` to use new schema fields from the repo-intel artifact
 
-### Fixed
-
-- Corrected query count from 21 to 20: `bus-factor-detailed` is not a separate CLI query, it is included in the `bus-factor` response
-
-[Unreleased]: https://github.com/agent-sh/git-map/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/agent-sh/git-map/releases/tag/v0.1.0
+[Unreleased]: https://github.com/agent-sh/repo-intel/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/agent-sh/repo-intel/releases/tag/v0.1.0

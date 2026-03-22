@@ -1,14 +1,18 @@
-# git-map
+# repo-intel
 
-> Git history analysis with cached, incrementally-updatable artifact using agent-analyzer binary
+> Unified static analysis via agent-analyzer - git history, AST symbols, project metadata, and doc-code sync
+
+## Agents
+
+- map-validator
 
 ## Skills
 
-- git-mapping
+- repo-intel
 
 ## Commands
 
-- git-map
+- repo-intel
 
 ## Critical Rules
 
@@ -44,7 +48,18 @@ npm test          # Run tests
 npm run validate  # All validators
 ```
 
+## Architecture
+
+- `lib/repo-intel/` - JS wrapper: `index.js` (init/update/status), `queries.js` (24 query types), `cache.js` (state dir management)
+- `lib/collectors/git.js` - collector pattern: load-or-init + summary extraction
+- `commands/repo-intel.md` - command definition
+- `skills/repo-intel/SKILL.md` - skill definition
+- `agents/map-validator.md` - lightweight output validator (Haiku)
+
+All analysis runs in the `agent-analyzer` Rust binary. The JS layer is purely dispatch and caching.
+
 ## References
 
 - Part of the [agentsys](https://github.com/agent-sh/agentsys) ecosystem
+- Powered by [agent-analyzer](https://github.com/agent-sh/agent-analyzer)
 - https://agentskills.io

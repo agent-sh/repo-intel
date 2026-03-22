@@ -1,12 +1,15 @@
 {
   "skills": [
-    "git-mapping"
+    "repo-intel"
   ],
   "commands": [
-    "git-map"
+    "repo-intel"
+  ],
+  "agents": [
+    "map-validator"
   ],
   "lib": [
-    "git-map",
+    "repo-intel",
     "collectors"
   ]
 }
