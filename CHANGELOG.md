@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Cached artifact `repo-intel.json` stored in `.claude/` or `.opencode/` for instant repeated queries
 - Incremental update support via `/git-map update` (only new commits since last scan)
 - Query flags: `--min-changes`, `--path-filter`, `--adjust-for-ai`
-- Consumer plugin integration: deslop, sync-docs, drift-detect, audit-project, next-task, enhance, ship, onboard, can-i-help
+- Consumer plugin integration: `deslop`, `sync-docs`, `drift-detect`, `audit-project`, `next-task`, `enhance`, `ship`, `onboard`, `can-i-help`
 - Scoring formulas documented: hotspot score, recency window (90-day), staleness threshold, area health classifications (healthy / needs-attention / at-risk)
 
 ### Changed
