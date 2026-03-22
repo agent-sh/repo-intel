@@ -1,0 +1,31 @@
+{
+  "name": "@agentsys/repo-intel",
+  "version": "0.1.0",
+  "description": "Unified static analysis via agent-analyzer - git history, AST symbols, project metadata, and doc-code sync",
+  "author": {
+    "name": "Avi Fenesh",
+    "email": "[email protected]",
+    "url": "https://github.com/avifenesh"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agent-sh/repo-intel.git"
+  },
+  "homepage": "https://github.com/agent-sh/repo-intel",
+  "scripts": {
+    "test": "node -e \"require('./lib/repo-intel')\"",
+    "validate": "node -e \"require('./lib/repo-intel')\""
+  },
+  "keywords": [
+    "repo-intel",
+    "git",
+    "hotspots",
+    "ast",
+    "symbols",
+    "coupling",
+    "ownership",
+    "analysis",
+    "agent-analyzer"
+  ]
+}

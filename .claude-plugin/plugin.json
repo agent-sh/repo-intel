@@ -1,12 +1,12 @@
 {
-  "name": "git-map",
+  "name": "repo-intel",
   "version": "0.1.0",
-  "description": "Git history analysis with cached, incrementally-updatable artifact",
-  "keywords": ["git", "history", "analysis", "hotspots", "coupling", "ownership"],
+  "description": "Unified static analysis via agent-analyzer - git history, AST symbols, project metadata, and doc-code sync",
+  "keywords": ["git", "history", "analysis", "hotspots", "coupling", "ownership", "ast", "symbols", "repo-intel"],
   "author": {
     "name": "Avi Fenesh",
     "url": "https://github.com/avifenesh"
   },
-  "repository": "https://github.com/agent-sh/git-map",
+  "repository": "https://github.com/agent-sh/repo-intel",
   "license": "MIT"
 }
