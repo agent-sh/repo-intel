@@ -1,6 +1,6 @@
 {
   "name": "@agentsys/repo-intel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Unified static analysis via agent-analyzer - git history, AST symbols, project metadata, and doc-code sync",
   "author": {
     "name": "Avi Fenesh",
