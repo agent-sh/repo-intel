@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-29
+
+### Fixed
+
+- Marketplace installs failed with `Cannot find module '@agentsys/lib'` - bundled `lib/binary/` directly in the plugin so it works standalone without the agentsys npm package
+- Replaced `require('@agentsys/lib')` with relative requires (`require('../binary')`) in index.js and queries.js
+- SKILL.md and command.md now use `$CLAUDE_PLUGIN_ROOT` instead of `getPluginRoot()` from the unavailable shared lib
+- Removed unsupported `darwin-x64` from platform map (no release asset exists)
+- Added HTTPS-only redirect guard for binary downloads
+- Used `mkdtempSync` for secure temp file creation during zip extraction
+
 ### Changed
 
 - Renamed plugin from `git-map` to `repo-intel` - consolidated with `repo-map` into a single unified plugin
@@ -13,9 +24,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Skill renamed from `git-mapping` to `repo-intel`
 - Library moved from `lib/git-map/` to `lib/repo-intel/`
 - `update()` now uses `--map-file` flag (correct agent-analyzer CLI interface)
+- SKILL.md argument parsing now separates flags from positional args
 
 ### Added
 
+- `lib/binary/` - bundled binary resolver for agent-analyzer (self-contained, no external dependencies)
 - `onboard` and `can-i-help` query types added to command and skill
 - `stale-docs` query type (Phase 4 doc-code sync)
 - `agents/map-validator.md` - lightweight output validator (ported from repo-map plugin)
