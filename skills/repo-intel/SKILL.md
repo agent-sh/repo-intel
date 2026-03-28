@@ -27,13 +27,12 @@ const queryArg = action === 'query' ? args[2] || null : null;
 ## Binary Integration
 
 ```javascript
-const { getPluginRoot } = require('@agentsys/lib/cross-platform');
-const pluginRoot = getPluginRoot('repo-intel');
-const { binary } = require('@agentsys/lib');
+const pluginRoot = '$CLAUDE_PLUGIN_ROOT';
+const binary = require(`${pluginRoot}/lib/binary`);
 const repoIntel = require(`${pluginRoot}/lib/repo-intel`);
 ```
 
-The binary is resolved and auto-downloaded if needed via `binary.ensureBinary()`.
+The binary is resolved and auto-downloaded if needed via `binary.ensureBinary()`. The binary module is bundled with this plugin - no external dependency required.
 
 ## Core Data Contract
 
