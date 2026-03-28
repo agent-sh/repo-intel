@@ -11,10 +11,11 @@ Build and maintain a cached repo-intel artifact using the agent-analyzer binary.
 ## Parse Arguments
 
 ```javascript
-const args = '$ARGUMENTS'.split(' ').filter(Boolean);
-const action = args.find(a => !a.startsWith('--') && !a.includes('/')) || 'status';
-const queryType = action === 'query' ? args[1] : null;
-const queryArg = action === 'query' ? args[2] || null : null;
+const allArgs = '$ARGUMENTS'.split(' ').filter(Boolean);
+const positional = allArgs.filter(a => !a.startsWith('--'));
+const action = positional[0] || 'status';
+const queryType = action === 'query' ? positional[1] : null;
+const queryArg = action === 'query' ? positional[2] || null : null;
 ```
 
 ## Primary Responsibilities
