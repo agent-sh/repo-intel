@@ -47,9 +47,7 @@ Examples:
 ### 1) Load Repo Intel Module
 
 ```javascript
-const { getPluginRoot } = require('@agentsys/lib/cross-platform');
-const pluginRoot = getPluginRoot('repo-intel');
-if (!pluginRoot) { console.error('[ERROR] Could not locate repo-intel plugin root'); process.exit(1); }
+const pluginRoot = '$CLAUDE_PLUGIN_ROOT';
 const repoIntel = require(`${pluginRoot}/lib/repo-intel`);
 const queries = require(`${pluginRoot}/lib/repo-intel/queries`);
 ```

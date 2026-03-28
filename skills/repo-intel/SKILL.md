@@ -11,10 +11,11 @@ Build and maintain a cached repo-intel artifact using the agent-analyzer binary.
 ## Parse Arguments
 
 ```javascript
-const args = '$ARGUMENTS'.split(' ').filter(Boolean);
-const action = args.find(a => !a.startsWith('--') && !a.includes('/')) || 'status';
-const queryType = action === 'query' ? args[1] : null;
-const queryArg = action === 'query' ? args[2] || null : null;
+const allArgs = '$ARGUMENTS'.split(' ').filter(Boolean);
+const positional = allArgs.filter(a => !a.startsWith('--'));
+const action = positional[0] || 'status';
+const queryType = action === 'query' ? positional[1] : null;
+const queryArg = action === 'query' ? positional[2] || null : null;
 ```
 
 ## Primary Responsibilities
@@ -27,13 +28,12 @@ const queryArg = action === 'query' ? args[2] || null : null;
 ## Binary Integration
 
 ```javascript
-const { getPluginRoot } = require('@agentsys/lib/cross-platform');
-const pluginRoot = getPluginRoot('repo-intel');
-const { binary } = require('@agentsys/lib');
+const pluginRoot = '$CLAUDE_PLUGIN_ROOT';
+const binary = require(`${pluginRoot}/lib/binary`);
 const repoIntel = require(`${pluginRoot}/lib/repo-intel`);
 ```
 
-The binary is resolved and auto-downloaded if needed via `binary.ensureBinary()`.
+The binary is resolved and auto-downloaded if needed via `binary.ensureBinary()`. The binary module is bundled with this plugin - no external dependency required.
 
 ## Core Data Contract
 
