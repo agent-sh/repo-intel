@@ -115,7 +115,7 @@ if (action === 'init') {
   } else if (queryType === 'contributors') {
     result = queries.contributors(cwd, { limit });
   } else if (queryType === 'ai-ratio') {
-    result = queries.aiRatio(cwd, { pathFilter: queryArg || undefined });
+    result = queries.aiRatio(cwd, { pathFilter: options.pathFilter || undefined });
   } else if (queryType === 'release-info') {
     result = queries.releaseInfo(cwd);
   } else if (queryType === 'health') {
