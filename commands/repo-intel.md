@@ -47,7 +47,9 @@ Examples:
 ### 1) Load Repo Intel Module
 
 ```javascript
-const pluginRoot = '$CLAUDE_PLUGIN_ROOT';
+// CC sets CLAUDE_PLUGIN_ROOT for plugin commands; fall back to relative
+// resolution so direct `node` invocations from the plugin root still work.
+const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || require('path').resolve(__dirname, '..');
 const repoIntel = require(`${pluginRoot}/lib/repo-intel`);
 const queries = require(`${pluginRoot}/lib/repo-intel/queries`);
 ```
