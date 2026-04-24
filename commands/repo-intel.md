@@ -1,13 +1,13 @@
 ---
-description: Unified static analysis - git history, AST symbols, project metadata, and doc-code sync via agent-analyzer
-codex-description: 'Use when user asks to "analyze git history", "show hotspots", "file coupling", "code ownership", "bus factor", "bugspots", "repo-intel init/update/status/query", "show symbols", "find dependents", "pain spots". Builds and queries a cached repo-intel artifact.'
-argument-hint: "init|update|status|query <type> [--since=<date>] [--max-commits=<n>] [--limit=<n>] [--adjust-for-ai] [--min-changes=<n>] [--path-filter=<path>] [<file>] [<path>]"
+description: Unified static analysis - git history, AST symbols, project metadata, doc-code sync, plus LLM-augmented file descriptors and a 3-depth narrative summary via post-init Haiku agents.
+codex-description: 'Use when user asks to "analyze git history", "show hotspots", "file coupling", "code ownership", "bus factor", "bugspots", "repo-intel init/update/enrich/status/query", "show symbols", "find dependents", "find <concept>", "find auth code", "pain spots", "entry points", "summarize this repo", "repo summary", "what does this project do", "enrich repo-intel", "generate descriptors". Builds and queries a cached repo-intel artifact and optionally enriches it with Haiku-generated descriptors and a narrative summary.'
+argument-hint: "init|update|enrich|status|query <type> [--since=<date>] [--max-commits=<n>] [--limit=<n>] [--depth=1|3|10] [--min-changes=<n>] [<file-or-concept>]"
 allowed-tools: Bash(git:*), Bash(npm:*), Read, Task, Write
 ---
 
 # /repo-intel - Static Analysis
 
-Analyze and query the cached repo-intel artifact powered by agent-analyzer. Covers git history, AST symbols, project metadata, and doc-code sync.
+Analyze and query the cached repo-intel artifact powered by agent-analyzer. Covers git history, AST symbols, project metadata, doc-code sync, and (after `enrich`) LLM-generated per-file descriptors plus a 3-depth narrative summary.
 
 ## Arguments
 
