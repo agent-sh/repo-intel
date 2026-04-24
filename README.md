@@ -217,6 +217,8 @@ To change variant or detail later: `/repo-intel embed reset` then `/repo-intel e
 
 The `embed update` action only re-embeds files whose content hash differs from the existing sidecar — fast on small PRs.
 
+repo-intel itself is distributed via the [agentsys](https://github.com/agent-sh/agentsys) plugin marketplace (not npm). For CI hooks where Claude Code isn't available, invoke the [agent-analyzer](https://github.com/agent-sh/agent-analyzer) binaries directly — they're published as standalone GitHub release assets:
+
 ```yaml
 # .github/workflows/repo-intel-embed.yml
 name: repo-intel embed update
@@ -230,9 +232,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with: { node-version: 'lts/*' }
-      - run: npx @agentsys/repo-intel embed update
+
+      - name: Download agent-analyzer + agent-analyzer-embed
+        run: |
+          set -euo pipefail
+          VER=$(curl -fsSL https://api.github.com/repos/agent-sh/agent-analyzer/releases/latest | jq -r .tag_name | sed 's/^v//')
+          for bin in agent-analyzer agent-analyzer-embed; do
+            curl -fsSL -o "$bin.tar.gz" \
+              "https://github.com/agent-sh/agent-analyzer/releases/download/v$VER/$bin-x86_64-unknown-linux-gnu.tar.gz"
+            tar xzf "$bin.tar.gz"
+          done
+          chmod +x agent-analyzer agent-analyzer-embed
+          echo "$PWD" >> "$GITHUB_PATH"
+
+      - name: Update embeddings sidecar
+        run: |
+          agent-analyzer-embed update . \
+              --map-file .claude/repo-intel.json \
+              --variant big \
+              --detail balanced \
+            | agent-analyzer repo-intel set-embeddings \
+              --map-file .claude/repo-intel.json --input -
+
       - uses: actions/upload-artifact@v4
         with:
           name: repo-intel-embeddings
@@ -241,15 +262,9 @@ jobs:
             .claude/repo-intel.embeddings.bin
 ```
 
-GitLab CI / Buildkite / Jenkins users: invoke the same `npx @agentsys/repo-intel embed update` command — the JS wrapper handles binary download and pipe-through to the analyzer.
+GitLab CI / Buildkite / Jenkins users: same idea — download the two binaries from the GitHub release, pipe one into the other.
 
-For local hooks (husky / lefthook / git hook):
-
-```bash
-# .git/hooks/post-commit
-#!/usr/bin/env bash
-npx @agentsys/repo-intel embed update --quiet 2>/dev/null || true
-```
+For local hooks where Claude Code IS installed (so the agentsys plugin is available), the cleanest path is to invoke through the skill via your Claude Code CLI. For users who want a standalone hook that doesn't depend on Claude Code, use the same direct-binary pattern from the workflow above.
 
 ## Consumer plugins
 
