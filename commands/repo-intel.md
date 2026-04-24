@@ -13,8 +13,8 @@ Analyze and query the cached repo-intel artifact powered by agent-analyzer. Cove
 
 Parse from `$ARGUMENTS`:
 
-- **Action**: `init` | `update` | `status` | `query` (default: `status`)
-- **Query subcommand** (when action is `query`): `hotspots` | `bugspots` | `coldspots` | `coupling` | `ownership` | `bus-factor` | `norms` | `areas` | `contributors` | `ai-ratio` | `release-info` | `health` | `file-history` | `conventions` | `test-gaps` | `diff-risk` | `doc-drift` | `recent-ai` | `onboard` | `can-i-help` | `painspots` | `symbols` | `dependents` | `stale-docs`
+- **Action**: `init` | `update` | `enrich` | `status` | `query` (default: `status`)
+- **Query subcommand** (when action is `query`): `hotspots` | `bugspots` | `coldspots` | `coupling` | `ownership` | `bus-factor` | `norms` | `areas` | `contributors` | `ai-ratio` | `release-info` | `health` | `file-history` | `conventions` | `test-gaps` | `diff-risk` | `doc-drift` | `recent-ai` | `onboard` | `can-i-help` | `painspots` | `symbols` | `dependents` | `stale-docs` | `find` | `summary`
 - `--since=<date>`: Limit history to commits after this date (for `init`)
 - `--max-commits=<n>`: Limit number of commits to analyze (for `init`)
 - `--limit=<n>`: Limit result rows (for queries)
@@ -29,6 +29,7 @@ Examples:
 - `/repo-intel init`
 - `/repo-intel init --since=2024-01-01`
 - `/repo-intel update`
+- `/repo-intel enrich`  *(spawns Haiku agents for descriptors + summary)*
 - `/repo-intel status`
 - `/repo-intel query hotspots`
 - `/repo-intel query hotspots --limit=20`
@@ -41,6 +42,8 @@ Examples:
 - `/repo-intel query dependents createUser`
 - `/repo-intel query onboard`
 - `/repo-intel query stale-docs`
+- `/repo-intel query find "worker pool"`
+- `/repo-intel query summary --depth=1`  *(needs `/repo-intel enrich` first)*
 
 ## Execution
 
@@ -68,7 +71,14 @@ for (const flag of flags) {
 }
 
 const queryType = action === 'query' ? (positional[1] || '').toLowerCase() : null;
-const queryArg = positional[2] || null;
+// `find` takes a multi-word concept query - rejoin all trailing
+// positionals (and strip surrounding quotes that survive shell
+// parsing) so `/repo-intel query find "worker pool"` works.
+// Other queries take a single positional file/symbol arg, so
+// positional[2] alone is right for them.
+const queryArg = queryType === 'find'
+  ? (positional.slice(2).join(' ').replace(/^["']|["']$/g, '') || null)
+  : (positional[2] || null);
 ```
 
 ### 3) Run Action
@@ -84,6 +94,67 @@ if (action === 'init') {
   });
 } else if (action === 'update') {
   result = await repoIntel.update(cwd);
+} else if (action === 'enrich') {
+  // Post-init LLM-augmented enrichment: spawn the summarizer and
+  // weighter Haiku subagents, parse their JSON outputs, pipe back
+  // through the analyzer's set-summary / set-descriptors subcommands.
+  // The Rust binary itself never calls an LLM - this orchestration is
+  // the "skill tells the agent to spawn a small agent" half.
+  if (!repoIntel.exists(cwd)) {
+    console.log('[ERROR] No repo-intel found. Run /repo-intel init first.');
+    process.exit(1);
+  }
+  const enrich = require(`${pluginRoot}/lib/repo-intel/enrich`);
+  const map = repoIntel.load(cwd);
+
+  // 1. Summary - one Task call, three depths in one response.
+  const readme = enrich.readReadme(cwd);
+  const manifests = enrich.readManifests(cwd);
+  const hotspots = enrich.topHotspots(cwd, map, 10);
+  const summarizerOut = await Task({
+    subagent_type: 'repo-intel:repo-intel-summarizer',
+    prompt: enrich.buildSummarizerPrompt(cwd, readme, manifests, hotspots)
+  });
+  const summary = enrich.parseMarkers(summarizerOut, 'SUMMARY');
+  let summaryApplied = false;
+  if (summary && summary.depth1 && summary.depth3 && summary.depth10) {
+    summary.inputHash = enrich.summaryInputHash(readme, manifests, hotspots);
+    await repoIntel.applySummary(cwd, summary);
+    summaryApplied = true;
+    console.log('[OK] summary populated');
+  } else {
+    console.log('[WARN] summarizer agent did not return parseable JSON or required depths; skipping');
+  }
+
+  // 2. Descriptors - top 500 paths, batched 30/Task call. Failures
+  // in any batch are logged but don't abort the run; partial
+  // descriptors are still better than none.
+  const paths = enrich.topPaths(map, 500);
+  const batches = enrich.chunk(paths, 30);
+  let totalAdded = 0;
+  for (let i = 0; i < batches.length; i++) {
+    try {
+      const out = await Task({
+        subagent_type: 'repo-intel:repo-intel-weighter',
+        prompt: enrich.buildWeighterPrompt(cwd, batches[i])
+      });
+      const descs = enrich.parseMarkers(out, 'DESCRIPTORS');
+      if (descs && Object.keys(descs).length > 0) {
+        // Drop entries the agent set to null (paths it couldn't read).
+        const cleaned = Object.fromEntries(
+          Object.entries(descs).filter(([, v]) => typeof v === 'string' && v.trim().length > 0)
+        );
+        if (Object.keys(cleaned).length > 0) {
+          await repoIntel.applyDescriptors(cwd, cleaned);
+          totalAdded += Object.keys(cleaned).length;
+        }
+      }
+    } catch (e) {
+      console.log(`[WARN] weighter batch ${i + 1}/${batches.length} failed: ${e.message}`);
+    }
+  }
+  console.log(`[OK] descriptors populated for ${totalAdded} files (${batches.length} batches)`);
+  result = { success: true, summaryPopulated: summaryApplied, descriptorsAdded: totalAdded };
 } else if (action === 'status') {
   result = repoIntel.status(cwd);
 } else if (action === 'query') {
@@ -148,12 +219,19 @@ if (action === 'init') {
     result = queries.dependents(cwd, queryArg, options.file);
   } else if (queryType === 'stale-docs') {
     result = queries.staleDocs(cwd, { limit });
+  } else if (queryType === 'find') {
+    if (!queryArg) { console.log('[ERROR] find requires a concept query (e.g. "worker pool")'); process.exit(1); }
+    result = queries.find(cwd, queryArg, { limit });
+  } else if (queryType === 'summary') {
+    // Optional depth filter via --depth=1|3|10
+    const depth = options.depth ? parseInt(options.depth, 10) : undefined;
+    result = queries.summary(cwd, { depth });
   } else {
-    console.log('[ERROR] Unknown query. Use: hotspots | bugspots | coldspots | coupling <file> | ownership <path> | bus-factor | norms | areas | contributors | ai-ratio | release-info | health | file-history <file> | conventions | test-gaps | diff-risk <files> | doc-drift | recent-ai | onboard | can-i-help | painspots | symbols <file> | dependents <symbol> | stale-docs');
+    console.log('[ERROR] Unknown query. Use: hotspots | bugspots | coldspots | coupling <file> | ownership <path> | bus-factor | norms | areas | contributors | ai-ratio | release-info | health | file-history <file> | conventions | test-gaps | diff-risk <files> | doc-drift | recent-ai | onboard | can-i-help | painspots | symbols <file> | dependents <symbol> | stale-docs | find <concept> | summary [--depth=1|3|10]');
     process.exit(1);
   }
 } else {
-  console.log('[ERROR] Unknown action. Use: init | update | status | query');
+  console.log('[ERROR] Unknown action. Use: init | update | enrich | status | query');
   process.exit(1);
 }
 
