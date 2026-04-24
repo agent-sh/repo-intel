@@ -258,12 +258,35 @@ if (action === 'init') {
     // Optional depth filter via --depth=1|3|10
     const depth = options.depth ? parseInt(options.depth, 10) : undefined;
     result = queries.summary(cwd, { depth });
+  } else if (queryType === 'slop-fixes') {
+    // Pinpoint structured fix actions for the deslop agent (Haiku tier).
+    result = queries.slopFixes(cwd);
+  } else if (queryType === 'slop-targets') {
+    // Ranked Sonnet/Opus scan targets. Includes NLP rows when sidecar present.
+    result = queries.slopTargets(cwd, { top: limit || 10 });
   } else {
-    console.log('[ERROR] Unknown query. Use: hotspots | bugspots | coldspots | coupling <file> | ownership <path> | bus-factor | norms | areas | contributors | ai-ratio | release-info | health | file-history <file> | conventions | test-gaps | diff-risk <files> | doc-drift | recent-ai | onboard | can-i-help | painspots | symbols <file> | dependents <symbol> | stale-docs | find <concept> | summary [--depth=1|3|10]');
+    console.log('[ERROR] Unknown query. Use: hotspots | bugspots | coldspots | coupling <file> | ownership <path> | bus-factor | norms | areas | contributors | ai-ratio | release-info | health | file-history <file> | conventions | test-gaps | diff-risk <files> | doc-drift | recent-ai | onboard | can-i-help | painspots | symbols <file> | dependents <symbol> | stale-docs | find <concept> | summary [--depth=1|3|10] | slop-fixes | slop-targets');
+    process.exit(1);
+  }
+} else if (action === 'embed') {
+  // Embedder action group: status | update | reset.
+  // Routes through lib/embed/orchestrator so the same code path is used
+  // both interactively from the skill and from the npx CLI hook.
+  const embed = require(`${pluginRoot}/lib/embed`);
+  const sub = (positional[1] || 'status').toLowerCase();
+  if (sub === 'status') {
+    result = embed.status(cwd);
+  } else if (sub === 'update') {
+    result = await embed.runUpdate(cwd);
+  } else if (sub === 'reset') {
+    embed.preference.reset(cwd);
+    result = { ok: true, message: 'embedder preference cleared; next /repo-intel enrich will re-prompt' };
+  } else {
+    console.log('[ERROR] Unknown embed action. Use: status | update | reset');
     process.exit(1);
   }
 } else {
-  console.log('[ERROR] Unknown action. Use: init | update | enrich | status | query');
+  console.log('[ERROR] Unknown action. Use: init | update | enrich | status | query | embed');
   process.exit(1);
 }
 
