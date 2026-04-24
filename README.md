@@ -236,14 +236,16 @@ jobs:
       - name: Download agent-analyzer + agent-analyzer-embed
         run: |
           set -euo pipefail
-          VER=$(curl -fsSL https://api.github.com/repos/agent-sh/agent-analyzer/releases/latest | jq -r .tag_name | sed 's/^v//')
+          mkdir -p "$HOME/.local/bin"
+          TAG=$(curl -fsSL https://api.github.com/repos/agent-sh/agent-analyzer/releases/latest | jq -r .tag_name)
           for bin in agent-analyzer agent-analyzer-embed; do
-            curl -fsSL -o "$bin.tar.gz" \
-              "https://github.com/agent-sh/agent-analyzer/releases/download/v$VER/$bin-x86_64-unknown-linux-gnu.tar.gz"
-            tar xzf "$bin.tar.gz"
+            curl -fsSL -o "$HOME/.local/bin/$bin.tar.gz" \
+              "https://github.com/agent-sh/agent-analyzer/releases/download/$TAG/$bin-x86_64-unknown-linux-gnu.tar.gz"
+            tar xzf "$HOME/.local/bin/$bin.tar.gz" -C "$HOME/.local/bin"
+            rm "$HOME/.local/bin/$bin.tar.gz"
           done
-          chmod +x agent-analyzer agent-analyzer-embed
-          echo "$PWD" >> "$GITHUB_PATH"
+          chmod +x "$HOME/.local/bin/agent-analyzer" "$HOME/.local/bin/agent-analyzer-embed"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Update embeddings sidecar
         run: |
