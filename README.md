@@ -1,17 +1,17 @@
 # repo-intel
 
-Unified static analysis for AI agents - git history, AST symbols, project metadata, and doc-code sync via a cached, incrementally-updatable Rust binary.
+Unified static analysis for AI agents - git history, AST symbols, project metadata, doc-code sync, and (optionally) LLM-augmented file descriptors plus a 3-depth narrative summary, via a cached, incrementally-updatable Rust binary.
 
 Part of the [agentsys](https://github.com/agent-sh/agentsys) ecosystem.
 
-Scan a repo once, cache the result, then query it repeatedly. The heavy lifting runs in the [agent-analyzer](https://github.com/agent-sh/agent-analyzer) Rust binary - this plugin provides the JavaScript interface and skill layer that other plugins consume.
+Scan a repo once, cache the result, then query it repeatedly. The heavy lifting runs in the [agent-analyzer](https://github.com/agent-sh/agent-analyzer) Rust binary - this plugin provides the JavaScript interface, the skill layer that other plugins consume, and the orchestration that spawns Haiku subagents to enrich the artifact with semantic signals.
 
 ## Why this plugin
 
 - Use this when you need to identify high-churn files before a refactor
 - Use this when evaluating bus factor risk across your codebase
 - Use this when finding files that always change together (coupling)
-- Use this when checking if AI-generated code is concentrated in certain areas
+- Use this when an agent (or you) needs a fast first-foothold in an unfamiliar repo (`find <concept>` and `summary`)
 - Use this when other plugins need repo intelligence (deslop, sync-docs, drift-detect, audit-project, next-task, onboard, can-i-help)
 
 ## Installation
@@ -23,11 +23,15 @@ agentsys install repo-intel
 ## Quick start
 
 ```
-/repo-intel init                          # Scan repo (first time)
+/repo-intel init                          # Scan repo (first time, deterministic)
+/repo-intel enrich                        # OPTIONAL: spawn Haiku agents to add descriptors + summary
 /repo-intel query hotspots                # Most active files, recency-weighted
+/repo-intel query find "auth flow"        # Concept search across files (uses descriptors when present)
+/repo-intel query summary --depth=1       # One-sentence repo description (needs enrich)
 /repo-intel query ownership src/auth/     # Who owns a path
 /repo-intel query bus-factor              # Knowledge distribution risk
 /repo-intel query painspots               # Hot x buggy x complex
+/repo-intel query entry-points            # Where execution starts (binaries, mains, scripts)
 /repo-intel query stale-docs              # Docs with stale symbol references
 ```
 
@@ -39,10 +43,11 @@ After init, the artifact is cached as `repo-intel.json` in the platform state di
 |--------|--------------|
 | `init` | Full scan - git history, AST symbols, project metadata, doc-code sync |
 | `update` | Incremental update (only new commits since last scan) |
+| `enrich` | Spawn the `repo-intel-summarizer` and `repo-intel-weighter` Haiku subagents to populate `summary` (3 depths) and `fileDescriptors` (top-500 most-active files). Optional - all deterministic queries work without it. |
 | `status` | Check cache staleness - commits behind, last analyzed date |
 | `query <type>` | Run a specific analysis query |
 
-## 24 query types
+## Query types
 
 ### Activity
 
@@ -90,12 +95,12 @@ After init, the artifact is cached as `repo-intel.json` in the platform state di
 | `health` | Repo-wide health overview |
 | `release-info` | Release cadence and tag history |
 
-### AI detection
+### LLM-augmented (requires `/repo-intel enrich` first)
 
 | Query | Description |
 |-------|-------------|
-| `ai-ratio` | AI vs human commit attribution |
-| `recent-ai` | Recent AI-generated changes (useful for deslop targeting) |
+| `find <concept>` | Concept-to-file search. With descriptors, catches synonyms (worker ↔ executor); without, falls back to deterministic substring scoring across paths/symbols/imports/doc-headers. |
+| `summary [--depth=1\|3\|10]` | Cached 3-depth narrative description: one sentence / one paragraph / one-page technical overview. |
 
 ### Contributor guidance
 
@@ -117,6 +122,7 @@ After init, the artifact is cached as `repo-intel.json` in the platform state di
 |-------|-------------|
 | `symbols <file>` | Exports, imports, and definitions for a file |
 | `dependents <symbol>` | Reverse dependency lookup - who imports this symbol |
+| `entry-points` | Every place execution can start - binaries (`Cargo.toml [[bin]]`, `package.json bin`, `pyproject [project.scripts]`), AST `main` functions, npm `scripts`. Cargo workspace-aware. |
 
 ## Scoring
 
@@ -137,8 +143,7 @@ After init, the artifact is cached as `repo-intel.json` in the platform state di
 |------|-----------|-------------|
 | `--limit N` | most queries | Limit result rows |
 | `--min-changes N` | test-gaps | Minimum change threshold |
-| `--path-filter <glob>` | ai-ratio | Filter to specific paths |
-| `--adjust-for-ai` | bus-factor | Downweight AI-generated changes |
+| `--depth 1\|3\|10` | summary | Print just one depth as plain text (omit for full JSON) |
 | `--since <date>` | init | Limit history scan to a date |
 | `--max-commits N` | init | Cap total commits scanned |
 
@@ -157,13 +162,37 @@ After init, the artifact is cached as `repo-intel.json` in the platform state di
 
 The JavaScript layer is intentionally thin - it resolves paths and parses JSON. All analysis logic lives in the [agent-analyzer](https://github.com/agent-sh/agent-analyzer) Rust binary.
 
+## Post-init enrichment (LLM-augmented signals)
+
+`/repo-intel enrich` is opt-in. The Rust binary stays offline-only - the orchestration that produces semantic signals lives entirely in this plugin's JS layer plus two Haiku-backed Task subagents:
+
+```
+/repo-intel enrich
+    |
+    +-- Task: repo-intel-summarizer (haiku)
+    |       reads README + manifests + top-10 hotspot heads,
+    |       returns {depth1, depth3, depth10} as JSON between markers
+    |       --> piped through `agent-analyzer set-summary --input -`
+    |
+    +-- Task: repo-intel-weighter (haiku, batched)
+            reads top-500 most-active files in batches of 30,
+            returns {path: descriptor} as JSON between markers
+            --> piped through `agent-analyzer set-descriptors --input -`
+```
+
+After enrich:
+- `query find <concept>` adds a 2.5/term descriptor signal that catches semantic synonyms (worker ↔ executor, queue ↔ channel) the deterministic scorer can't see.
+- `query summary [--depth=1|3|10]` returns the cached narrative.
+
+Cost is bounded by the top-500 cap regardless of repo size.
+
 ## Consumer plugins
 
 Other plugins use repo-intel data automatically when available:
 
 | Plugin | Queries used | Purpose |
 |--------|-------------|---------|
-| [deslop](https://github.com/agent-sh/deslop) | recent-ai, test-gaps | Target AI code, escalate untested findings |
+| [deslop](https://github.com/agent-sh/deslop) | test-gaps | Escalate untested findings |
 | [sync-docs](https://github.com/agent-sh/sync-docs) | doc-drift, stale-docs | Find stale documentation |
 | [drift-detect](https://github.com/agent-sh/drift-detect) | doc-drift, areas | Plan vs reality comparison |
 | [audit-project](https://github.com/agent-sh/audit-project) | test-gaps | Prioritize review of untested code |
