@@ -154,7 +154,39 @@ if (action === 'init') {
     }
   }
   console.log(`[OK] descriptors populated for ${totalAdded} files (${batches.length} batches)`);
-  result = { success: true, summaryPopulated: summaryApplied, descriptorsAdded: totalAdded };
+
+  // 3. Embedder (opt-in). The two AskUserQuestion prompts gate the
+  //    install + detail choice. Both are cached in preference.json
+  //    so subsequent enrich runs proceed silently.
+  //
+  //    The skill orchestrator is responsible for calling
+  //    AskUserQuestion before invoking this command when
+  //    embed.preference.hasEmbedderChoice() returns false. After the
+  //    user answers, this block runs the orchestrator end-to-end.
+  const embed = require(`${pluginRoot}/lib/embed`);
+  let embedSummary = { ran: false, reason: 'preference is "none" or unset' };
+  if (embed.isEnabled(cwd)) {
+    try {
+      // Update path is delta-only; falls back to a full scan internally
+      // when no sidecar exists yet.
+      embedSummary = await embed.runUpdate(cwd);
+      if (embedSummary.ran) {
+        console.log(`[OK] embeddings: ${embedSummary.files} files in ${embedSummary.durationMs}ms`);
+      } else {
+        console.log(`[INFO] embed step skipped: ${embedSummary.reason}`);
+      }
+    } catch (e) {
+      console.log(`[WARN] embedder failed (continuing without): ${e.message}`);
+      embedSummary = { ran: false, reason: e.message };
+    }
+  }
+
+  result = {
+    success: true,
+    summaryPopulated: summaryApplied,
+    descriptorsAdded: totalAdded,
+    embeddings: embedSummary
+  };
 } else if (action === 'status') {
   result = repoIntel.status(cwd);
 } else if (action === 'query') {
