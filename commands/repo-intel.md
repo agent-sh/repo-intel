@@ -71,7 +71,14 @@ for (const flag of flags) {
 }
 
 const queryType = action === 'query' ? (positional[1] || '').toLowerCase() : null;
-const queryArg = positional[2] || null;
+// `find` takes a multi-word concept query - rejoin all trailing
+// positionals (and strip surrounding quotes that survive shell
+// parsing) so `/repo-intel query find "worker pool"` works.
+// Other queries take a single positional file/symbol arg, so
+// positional[2] alone is right for them.
+const queryArg = queryType === 'find'
+  ? (positional.slice(2).join(' ').replace(/^["']|["']$/g, '') || null)
+  : (positional[2] || null);
 ```
 
 ### 3) Run Action
@@ -109,12 +116,14 @@ if (action === 'init') {
     prompt: enrich.buildSummarizerPrompt(cwd, readme, manifests, hotspots)
   });
   const summary = enrich.parseMarkers(summarizerOut, 'SUMMARY');
+  let summaryApplied = false;
   if (summary && summary.depth1 && summary.depth3 && summary.depth10) {
     summary.inputHash = enrich.summaryInputHash(readme, manifests, hotspots);
     await repoIntel.applySummary(cwd, summary);
+    summaryApplied = true;
     console.log('[OK] summary populated');
   } else {
-    console.log('[WARN] summarizer agent did not return parseable JSON; skipping');
+    console.log('[WARN] summarizer agent did not return parseable JSON or required depths; skipping');
   }
 
   // 2. Descriptors - top 500 paths, batched 30/Task call. Failures
@@ -145,7 +154,7 @@ if (action === 'init') {
     }
   }
   console.log(`[OK] descriptors populated for ${totalAdded} files (${batches.length} batches)`);
-  result = { success: true, summaryPopulated: !!summary, descriptorsAdded: totalAdded };
+  result = { success: true, summaryPopulated: summaryApplied, descriptorsAdded: totalAdded };
 } else if (action === 'status') {
   result = repoIntel.status(cwd);
 } else if (action === 'query') {
