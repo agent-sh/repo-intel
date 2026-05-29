@@ -50,8 +50,8 @@ npm run validate  # All validators
 
 ## Architecture
 
-- `lib/repo-intel/` - JS wrapper: `index.js` (init/update/status), `queries.js` (24 query types), `cache.js` (state dir management)
-- `lib/collectors/git.js` - collector pattern: load-or-init + summary extraction
+- `lib/repo-intel/` - JS wrapper: `index.js` (init/update/status/enrich), `queries.js` (30 query types), `cache.js` (state dir management)
+- `lib/embed/` - embedder orchestration: `preference.js` (model choice), `orchestrator.js` (scan/update pipeline), `binary.js` (embed binary resolver)
 - `commands/repo-intel.md` - command definition
 - `skills/repo-intel/SKILL.md` - skill definition
 - `agents/map-validator.md` - lightweight output validator (Haiku)

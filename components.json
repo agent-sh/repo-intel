@@ -11,6 +11,6 @@
   "lib": [
     "binary",
     "repo-intel",
-    "collectors"
+    "embed"
   ]
 }
