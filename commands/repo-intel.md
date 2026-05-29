@@ -14,15 +14,15 @@ Analyze and query the cached repo-intel artifact powered by agent-analyzer. Cove
 Parse from `$ARGUMENTS`:
 
 - **Action**: `init` | `update` | `enrich` | `status` | `query` (default: `status`)
-- **Query subcommand** (when action is `query`): `hotspots` | `bugspots` | `coldspots` | `coupling` | `ownership` | `bus-factor` | `norms` | `areas` | `contributors` | `ai-ratio` | `release-info` | `health` | `file-history` | `conventions` | `test-gaps` | `diff-risk` | `doc-drift` | `recent-ai` | `onboard` | `can-i-help` | `painspots` | `symbols` | `dependents` | `stale-docs` | `find` | `summary`
+- **Query subcommand** (when action is `query`): `hotspots` | `bugspots` | `coldspots` | `coupling` | `ownership` | `bus-factor` | `norms` | `areas` | `contributors` | `release-info` | `health` | `file-history` | `conventions` | `test-gaps` | `diff-risk` | `doc-drift` | `onboard` | `can-i-help` | `painspots` | `symbols` | `dependents` | `stale-docs` | `find` | `summary` | `slop-fixes` | `slop-targets` | `communities` | `boundaries` | `area-of` | `community-health` | `entry-points` | `project-info`
 - `--since=<date>`: Limit history to commits after this date (for `init`)
 - `--max-commits=<n>`: Limit number of commits to analyze (for `init`)
 - `--limit=<n>`: Limit result rows (for queries)
 - `--adjust-for-ai`: Adjust bus factor score (for `bus-factor`)
 - `--min-changes=<n>`: Minimum change count threshold (for `test-gaps`)
-- `--path-filter=<path>`: Filter results to a specific path (for `ai-ratio`)
-- `<file>`: File path argument (for `coupling`, `file-history`, `diff-risk`, `symbols`, `ownership`)
+- `<file>`: File path argument (for `coupling`, `file-history`, `diff-risk`, `symbols`, `ownership`, `area-of`)
 - `<symbol>`: Symbol name (for `dependents`)
+- `<id>`: Community id (for `community-health`)
 
 Examples:
 
@@ -219,8 +219,6 @@ if (action === 'init') {
     result = queries.areas(cwd);
   } else if (queryType === 'contributors') {
     result = queries.contributors(cwd, { limit });
-  } else if (queryType === 'ai-ratio') {
-    result = queries.aiRatio(cwd, { pathFilter: options.pathFilter || undefined });
   } else if (queryType === 'release-info') {
     result = queries.releaseInfo(cwd);
   } else if (queryType === 'health') {
@@ -237,8 +235,6 @@ if (action === 'init') {
     result = queries.diffRisk(cwd, queryArg.split(','));
   } else if (queryType === 'doc-drift') {
     result = queries.docDrift(cwd, { limit });
-  } else if (queryType === 'recent-ai') {
-    result = queries.recentAi(cwd, { limit });
   } else if (queryType === 'onboard') {
     result = queries.onboard(cwd);
   } else if (queryType === 'can-i-help') {
@@ -266,8 +262,22 @@ if (action === 'init') {
   } else if (queryType === 'slop-targets') {
     // Ranked Sonnet/Opus scan targets. Includes NLP rows when sidecar present.
     result = queries.slopTargets(cwd, { top: limit || 10 });
+  } else if (queryType === 'communities') {
+    result = queries.communities(cwd);
+  } else if (queryType === 'boundaries') {
+    result = queries.boundaries(cwd, { limit });
+  } else if (queryType === 'area-of') {
+    if (!queryArg) { console.log('[ERROR] area-of requires a file path'); process.exit(1); }
+    result = queries.areaOf(cwd, queryArg);
+  } else if (queryType === 'community-health') {
+    if (!queryArg) { console.log('[ERROR] community-health requires a community id'); process.exit(1); }
+    result = queries.communityHealth(cwd, queryArg);
+  } else if (queryType === 'entry-points') {
+    result = queries.entryPoints(cwd, { files: options.files });
+  } else if (queryType === 'project-info') {
+    result = queries.projectInfo(cwd);
   } else {
-    console.log('[ERROR] Unknown query. Use: hotspots | bugspots | coldspots | coupling <file> | ownership <path> | bus-factor | norms | areas | contributors | ai-ratio | release-info | health | file-history <file> | conventions | test-gaps | diff-risk <files> | doc-drift | recent-ai | onboard | can-i-help | painspots | symbols <file> | dependents <symbol> | stale-docs | find <concept> | summary [--depth=1|3|10] | slop-fixes | slop-targets');
+    console.log('[ERROR] Unknown query. Use: hotspots | bugspots | coldspots | coupling <file> | ownership <path> | bus-factor | norms | areas | contributors | release-info | health | file-history <file> | conventions | test-gaps | diff-risk <files> | doc-drift | onboard | can-i-help | painspots | symbols <file> | dependents <symbol> | stale-docs | find <concept> | summary [--depth=1|3|10] | slop-fixes | slop-targets | communities | boundaries | area-of <file> | community-health <id> | entry-points | project-info');
     process.exit(1);
   }
 } else if (action === 'embed') {
