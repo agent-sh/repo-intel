@@ -1,7 +1,26 @@
 {
   "name": "@agentsys/repo-intel",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Unified static analysis via agent-analyzer - git history, AST symbols, project metadata, and doc-code sync",
+  "main": "lib/repo-intel/index.js",
+  "exports": {
+    ".": "./lib/repo-intel/index.js",
+    "./queries": "./lib/repo-intel/queries.js",
+    "./binary": "./lib/binary/index.js",
+    "./embed": "./lib/embed/index.js",
+    "./cache": "./lib/repo-intel/cache.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/",
+    "commands/",
+    "skills/",
+    "agents/",
+    ".claude-plugin/",
+    "components.json",
+    "README.md",
+    "LICENSE"
+  ],
   "author": {
     "name": "Avi Fenesh",
     "email": "[email protected]",
