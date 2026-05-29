@@ -14,7 +14,7 @@
   },
   "homepage": "https://github.com/agent-sh/repo-intel",
   "scripts": {
-    "test": "node -e \"require('./lib/repo-intel'); require('./lib/binary'); require('./lib/embed')\" && node test/enrich.test.js && node test/preference.test.js",
+    "test": "node -e \"require('./lib/repo-intel'); require('./lib/binary'); require('./lib/embed')\" && node test/enrich.test.js && node test/preference.test.js && node test/orchestrator.test.js",
     "validate": "node -e \"require('./lib/repo-intel'); require('./lib/binary'); require('./lib/embed')\""
   },
   "keywords": [

@@ -179,21 +179,37 @@ if (action === 'init') {
   }
   console.log(`[OK] descriptors populated for ${totalAdded} files (${batches.length} batches)`);
 
-  // 3. Embedder (opt-in). The two AskUserQuestion prompts gate the
-  //    install + detail choice. Both are cached in preference.json
-  //    so subsequent enrich runs proceed silently.
-  //
-  //    The skill orchestrator is responsible for calling
-  //    AskUserQuestion before invoking this command when
-  //    embed.preference.hasEmbedderChoice() returns false. After the
-  //    user answers, this block runs the orchestrator end-to-end.
+  // 3. Embedder (opt-in). First enrich asks the user once which model to
+  //    install (or none); the choice is cached in preference.json so later
+  //    runs proceed silently. Without this prompt the embedder is
+  //    unreachable (isEnabled() is false until a choice is persisted).
   const embed = require(`${pluginRoot}/lib/embed`);
-  let embedSummary = { ran: false, reason: 'preference is "none" or unset' };
+
+  if (!embed.preference.hasEmbedderChoice(cwd)) {
+    const choice = await AskUserQuestion({
+      questions: [{
+        question: 'Install a local embedder for semantic search + dup detection? It downloads a model on first use.',
+        header: 'Embedder',
+        multiSelect: false,
+        options: [
+          { label: 'No (skip)', description: 'No embedder. find/slop-targets stay lexical. Default — zero download.' },
+          { label: 'Small (~30MB)', description: 'bge-small-en-v1.5. English, lighter, weaker on code. Good for laptops.' },
+          { label: 'Big (~195MB)', description: 'embeddinggemma-300m. Code-aware, multilingual, SOTA <500M. Recommended if disk allows.' }
+        ]
+      }]
+    });
+    const ans = (choice && choice.answers && Object.values(choice.answers)[0]) || 'No (skip)';
+    const embedder = /Small/.test(ans) ? 'small' : /Big/.test(ans) ? 'big' : 'none';
+    embed.preference.update(cwd, { embedder, embedderDetail: 'balanced' });
+    console.log(`[OK] embedder preference set: ${embedder}`);
+  }
+
+  let embedSummary = { ran: false, reason: 'embedder preference is "none" or unset' };
   if (embed.isEnabled(cwd)) {
     try {
-      // Update path is delta-only; falls back to a full scan internally
-      // when no sidecar exists yet.
-      embedSummary = await embed.runUpdate(cwd);
+      // First run (no sidecar yet) needs a full scan; later runs are delta.
+      const hasSidecar = embed.status(cwd).sidecarExists;
+      embedSummary = hasSidecar ? await embed.runUpdate(cwd) : await embed.runScan(cwd);
       if (embedSummary.ran) {
         console.log(`[OK] embeddings: ${embedSummary.files} files in ${embedSummary.durationMs}ms`);
       } else {
