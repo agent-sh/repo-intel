@@ -138,6 +138,33 @@ const tests = [
     } finally {
       cleanup(cwd);
     }
+  },
+
+  // --- cache stateDir override + Repository class (goal 4: generalize API) ---
+  function cache_getStateDirPath_honors_absolute_override() {
+    const cache = require('../lib/repo-intel/cache');
+    assert.strictEqual(cache.getStateDirPath('/repo', '/abs/state'), '/abs/state');
+  },
+
+  function cache_getStateDirPath_joins_bare_name_under_basePath() {
+    const cache = require('../lib/repo-intel/cache');
+    assert.strictEqual(cache.getStateDirPath('/repo', '.custom'), path.join('/repo', '.custom'));
+  },
+
+  function cache_getPath_uses_overridden_stateDir() {
+    const cache = require('../lib/repo-intel/cache');
+    assert.strictEqual(cache.getPath('/repo', '.custom'), path.join('/repo', '.custom', 'repo-intel.json'));
+  },
+
+  function repository_requires_basePath() {
+    const { Repository } = require('../lib/repo-intel');
+    assert.throws(() => new Repository({}), /requires/);
+  },
+
+  function repository_query_rejects_unknown_name() {
+    const { Repository } = require('../lib/repo-intel');
+    const r = new Repository({ basePath: '/repo' });
+    assert.throws(() => r.query('nope'), /Unknown query/);
   }
 ];
 
