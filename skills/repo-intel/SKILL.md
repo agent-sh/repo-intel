@@ -29,7 +29,27 @@ const queryArg = action === 'query' ? positional[2] || null : null;
 ## Binary Integration
 
 ```javascript
-const pluginRoot = '$CLAUDE_PLUGIN_ROOT';
+// Resolve the plugin root robustly. Claude Code does NOT text-substitute
+// $CLAUDE_PLUGIN_ROOT (only $ARGUMENTS); it sets it as a runtime env var. The
+// __dirname fallback can resolve to "/" in an embedded `node -e` context, so we
+// validate the resolved root actually contains lib/ before trusting it.
+const fs = require('fs');
+const path = require('path');
+function resolvePluginRoot() {
+  const candidates = [
+    process.env.CLAUDE_PLUGIN_ROOT,
+    typeof __dirname !== 'undefined' ? path.resolve(__dirname, '..') : null,
+    process.cwd()
+  ].filter(Boolean);
+  for (const c of candidates) {
+    if (fs.existsSync(path.join(c, 'lib', 'repo-intel'))) return c;
+  }
+  throw new Error(
+    '[ERROR] repo-intel: cannot locate plugin root. CLAUDE_PLUGIN_ROOT is unset ' +
+    'and no candidate contained lib/repo-intel. Tried: ' + candidates.join(', ')
+  );
+}
+const pluginRoot = resolvePluginRoot();
 const binary = require(`${pluginRoot}/lib/binary`);
 const repoIntel = require(`${pluginRoot}/lib/repo-intel`);
 ```

@@ -50,9 +50,27 @@ Examples:
 ### 1) Load Repo Intel Module
 
 ```javascript
-// CC sets CLAUDE_PLUGIN_ROOT for plugin commands; fall back to relative
-// resolution so direct `node` invocations from the plugin root still work.
-const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || require('path').resolve(__dirname, '..');
+// Resolve the plugin root robustly. CC sets CLAUDE_PLUGIN_ROOT as a runtime env
+// var (it does NOT text-substitute it). The __dirname fallback can resolve to "/"
+// in an embedded `node -e` context (path.resolve(".","..") === "/"), producing
+// require("//lib/...") -> MODULE_NOT_FOUND. Validate the root contains lib/ first.
+const fs = require('fs');
+const path = require('path');
+function resolvePluginRoot() {
+  const candidates = [
+    process.env.CLAUDE_PLUGIN_ROOT,
+    typeof __dirname !== 'undefined' ? path.resolve(__dirname, '..') : null,
+    process.cwd()
+  ].filter(Boolean);
+  for (const c of candidates) {
+    if (fs.existsSync(path.join(c, 'lib', 'repo-intel'))) return c;
+  }
+  throw new Error(
+    '[ERROR] repo-intel: cannot locate plugin root. CLAUDE_PLUGIN_ROOT is unset ' +
+    'and no candidate contained lib/repo-intel. Tried: ' + candidates.join(', ')
+  );
+}
+const pluginRoot = resolvePluginRoot();
 const repoIntel = require(`${pluginRoot}/lib/repo-intel`);
 const queries = require(`${pluginRoot}/lib/repo-intel/queries`);
 ```
@@ -89,6 +107,10 @@ const queryArg = queryType === 'find'
 const cwd = process.cwd();
 let result;
 
+// Surface any failure as [ERROR] instead of an uncaught exception the harness
+// swallows (silent "nothing happened"). Binary download, path, JSON-parse, and
+// query errors all land here with a readable message.
+try {
 if (action === 'init') {
   result = await repoIntel.init(cwd, {
     since: options.since,
@@ -310,6 +332,10 @@ if (result?.success === false) {
 if (action === 'status' && !result.exists) {
   console.log('No repo-intel found. Run /repo-intel init to generate one.');
   process.exit(0);
+}
+} catch (err) {
+  console.log(`[ERROR] repo-intel ${action}${queryType ? ' ' + queryType : ''} failed: ${err.message}`);
+  process.exit(1);
 }
 ```
 
