@@ -67,7 +67,12 @@ const QUERIES = {
   communities: (q, cwd) => q.communities(cwd),
   boundaries: (q, cwd, a, o) => q.boundaries(cwd, { limit: int(o.limit) }),
   'area-of': (q, cwd, a) => q.areaOf(cwd, need(a[0], 'area-of: a file path is')),
-  'community-health': (q, cwd, a) => q.communityHealth(cwd, need(a[0], 'community-health: a community id is')),
+  'community-health': (q, cwd, a) => {
+    // Positionals are strings; the query takes a non-negative integer.
+    const id = Number(need(a[0], 'community-health: a community id is'));
+    if (!Number.isInteger(id) || id < 0) throw new UsageError('community-health: id must be a non-negative integer');
+    return q.communityHealth(cwd, id);
+  },
   symbols: (q, cwd, a) => q.symbols(cwd, need(a[0], 'symbols: a file path is')),
   dependents: (q, cwd, a, o) => q.dependents(cwd, need(a[0], 'dependents: a symbol name is'), typeof o.file === 'string' ? o.file : undefined),
   'stale-docs': (q, cwd, a, o) => q.staleDocs(cwd, { limit: int(o.limit) }),
@@ -147,7 +152,8 @@ async function embedAction(repoIntel, cwd, sub, a, o) {
       if (!embed.preference.VALID_DETAIL.includes(detail)) throw new UsageError(`detail must be one of ${embed.preference.VALID_DETAIL.join(', ')}`);
       patch.embedderDetail = detail;
     }
-    return { ok: true, preference: embed.preference.update(cwd, patch) };
+    // Report the new state so the caller can run `embed update` right away on a first opt-in.
+    return { ok: true, preference: embed.preference.update(cwd, patch), enabled: embed.isEnabled(cwd) };
   }
   throw new UsageError(`unknown embed action: ${sub}`);
 }

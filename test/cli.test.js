@@ -119,6 +119,25 @@ test('embed choose validates and persists the preference', async () => {
   }
 });
 
+test('community-health converts the id and rejects bad ones', async () => {
+  let got = null;
+  const q = { communityHealth: (cwd, id) => { got = id; return { id }; } };
+  assert.deepEqual(QUERIES['community-health'](q, '.', ['3'], {}), { id: 3 });
+  assert.equal(got, 3);
+  assert.throws(() => QUERIES['community-health'](q, '.', ['x'], {}), /non-negative integer/);
+  assert.throws(() => QUERIES['community-health'](q, '.', ['-1'], {}), /non-negative integer/);
+});
+
+test('embed choose reports whether the embedder is now enabled', async () => {
+  const dir = scratch();
+  try {
+    assert.equal((await run(['embed', 'choose', 'small'], dir)).enabled, true);
+    assert.equal((await run(['embed', 'choose', 'none'], dir)).enabled, false);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('CLI exits 2 with usage on a bad action', () => {
   try {
     execFileSync(process.execPath, [SCRIPT, 'frobnicate'], { stdio: 'pipe' });

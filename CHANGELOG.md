@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The command dispatched `ai-ratio` and `recent-ai` to query functions that do not exist (a TypeError). They are gone; unknown types get the list of valid ones.
 - `bus-factor --limit` and `--adjust-for-ai`, and `coupling --limit`, passed flags the binary rejects. The CLI no longer sends them.
 - The command's last step spawned `repo-intel:repo-intel` as a subagent; that is a skill, not an agent.
+- `community-health` passes the id as an integer (the query rejects strings), and `embed choose` returns `enabled` so a first opt-in embeds in the same enrich run. Found by revuto.
 - `communities`, `boundaries`, `area-of`, `community-health` and `project-info` were in the queries module but not reachable from the command.
 
 
