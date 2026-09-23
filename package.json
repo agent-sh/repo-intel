@@ -1,6 +1,6 @@
 {
   "name": "@agentsys/repo-intel",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Unified static analysis via agent-analyzer - git history, AST symbols, project metadata, and doc-code sync",
   "author": {
     "name": "Avi Fenesh",
@@ -14,7 +14,7 @@
   },
   "homepage": "https://github.com/agent-sh/repo-intel",
   "scripts": {
-    "test": "node -e \"require('./lib/repo-intel'); require('./lib/binary'); require('./lib/embed')\" && node test/enrich.test.js && node test/preference.test.js",
+    "test": "node -e \"require('./lib/repo-intel'); require('./lib/binary'); require('./lib/embed')\" && node test/enrich.test.js && node test/preference.test.js && node test/cli.test.js",
     "validate": "node -e \"require('./lib/repo-intel'); require('./lib/binary'); require('./lib/embed')\""
   },
   "keywords": [
