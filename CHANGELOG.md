@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-24
+
+### Changed
+
+- Rewrote the command, the skill and the three agents for current models: what each action does, constraints with reasons, and the output contract, instead of JavaScript for the model to act out. The skill's trigger description is one sentence; the query tables moved to `skills/repo-intel/references/queries.md`.
+- The embedder question in `enrich` defaults to leaving the embedder off when AskUserQuestion is missing or the run is unattended.
+
+### Added
+
+- `scripts/repo-intel.js`: one CLI for `init`, `update`, `status`, `query`, `queries`, `enrich plan|apply-summary|apply-descriptors`, and `embed status|update|reset|choose`, with tests in `test/cli.test.js`.
+
+### Fixed
+
+- The command was JavaScript with `require()` calls, but its `allowed-tools` had no `node`, so nothing in it could run. It now calls the CLI.
+- `enrich` read the map with `load()`, which returns the converted repo-map view without `fileActivity`, so `topPaths()` was empty and no descriptors were ever generated. The CLI reads the raw artifact (500 paths on a test repo where `load()` gave 0).
+- The embedder was unreachable: the command said the skill would ask the opt-in question, and the skill never did. The command asks, and `embed choose` records the answer.
+- The command dispatched `ai-ratio` and `recent-ai` to query functions that do not exist (a TypeError). They are gone; unknown types get the list of valid ones.
+- `bus-factor --limit` and `--adjust-for-ai`, and `coupling --limit`, passed flags the binary rejects. The CLI no longer sends them.
+- The command's last step spawned `repo-intel:repo-intel` as a subagent; that is a skill, not an agent.
+- `communities`, `boundaries`, `area-of`, `community-health` and `project-info` were in the queries module but not reachable from the command.
+
+
 ### Added
 
 - **Post-init `enrich` action** (#13) - new `/repo-intel enrich` spawns two Haiku Task subagents to populate the artifact with LLM-augmented signals. The Rust binary stays offline-only; orchestration lives in the JS layer.

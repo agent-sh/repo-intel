@@ -1,151 +1,35 @@
 ---
 name: repo-intel
-description: "Use when user asks to \"analyze git history\", \"show hotspots\", \"coldspots\", \"file coupling\", \"code ownership\", \"bus factor\", \"bugspots\", \"area health\", \"project norms\", \"test gaps\", \"untested files\", \"diff risk\", \"stale docs\", \"doc drift\", \"contributors\", \"repo health\", \"release cadence\", \"file history\", \"conventions\", \"AST symbols\", \"find dependents\", \"pain spots\", \"onboard to codebase\", \"where can I help\", \"find <concept>\", \"find auth code\", \"find worker pool\", \"summarize this repo\", \"repo summary\", \"what does this project do\", \"enrich repo-intel\", \"generate descriptors\", \"entry points\", \"where does this start\", \"slop fixes\", \"clean slop\", \"slop targets\", \"deslop targets\", \"semantic find\", \"find similar function\", \"semantic duplicate\", \"stylistic outlier\", \"embed update\", \"embed status\", \"embed reset\", \"repo-intel init/update/enrich/status/query/embed\". Builds and queries a cached repo-intel artifact using the agent-analyzer binary; spawns Haiku subagents post-init for descriptors and a 3-depth narrative summary; opt-in embedder unlocks semantic find, stylistic outliers, and semantic duplicate detection."
+description: "Use when the user asks about a repo's git history or structure: hotspots, bugspots, coupling, ownership, bus factor, test gaps, diff risk, stale docs, symbols, dependents, entry points, finding code by concept, or a repo summary."
 argument-hint: "init|update|enrich|status|query <type>|embed <action> [--since=<date>] [--max-commits=<n>] [--limit=<n>] [--depth=1|3|10] [--min-changes=<n>] [<file-or-concept>]"
 ---
 
-# Repo Intel Skill
+# repo-intel
 
-Build and maintain a cached repo-intel artifact using the agent-analyzer binary. Covers git history, AST symbols, project metadata, doc-code sync, and (after `enrich`) LLM-generated per-file descriptors and a 3-depth narrative summary.
+Answer questions about a repository from its cached repo-intel artifact instead of re-reading history each time. The artifact (`{stateDir}/repo-intel.json`, where `{stateDir}` is `.claude`, `.opencode` or `.codex`) is built by the `agent-analyzer` binary from git history and the AST; `enrich` adds per-file descriptors and a narrative summary written by two small agents.
 
-## Parse Arguments
+Arguments: `$ARGUMENTS`
 
-```javascript
-const allArgs = '$ARGUMENTS'.split(' ').filter(Boolean);
-const positional = allArgs.filter(a => !a.startsWith('--'));
-const action = positional[0] || 'status';
-const queryType = action === 'query' ? positional[1] : null;
-const queryArg = action === 'query' ? positional[2] || null : null;
+## Running it
+
+`scripts/repo-intel.js` at the plugin root (two directories up from this skill) runs every action and prints JSON:
+
+```bash
+node <plugin>/scripts/repo-intel.js status
+node <plugin>/scripts/repo-intel.js query hotspots --limit=10
+node <plugin>/scripts/repo-intel.js query find "worker pool"
 ```
 
-## Primary Responsibilities
+The `/repo-intel` command documents each action, the enrich sequence and the report shape; follow it for `init`, `update` and `enrich`. For a question like "what breaks most often", pick the query that answers it (see [references/queries.md](references/queries.md)), run it, and answer the question from the rows. Several queries together often answer better than one: `painspots` plus `test-gaps` for "where should tests go first".
 
-1. **Initialize artifact** on demand (`/repo-intel init`) - full scan
-2. **Update incrementally** (`/repo-intel update`) - only new commits since last run
-3. **Enrich with LLM signals** (`/repo-intel enrich`) - spawn the `repo-intel-summarizer` and `repo-intel-weighter` Haiku subagents to populate the artifact's `summary` (3 depths) and `fileDescriptors` (top-500 most-active files). The Rust binary itself never calls an LLM - this orchestration runs in JS and pipes the agent JSON back through `set-summary` / `set-descriptors`.
-4. **Check status** (`/repo-intel status`)
-5. **Run queries** against the cached artifact (`/repo-intel query <type>`)
+## Freshness
 
-## Binary Integration
+Check `status` before answering from a map. If it is behind HEAD, run `update` first (seconds on most repos); if there is no map, `init` it when the user asked for analysis, or say that one is needed. Answers from a stale map describe an older repo.
 
-```javascript
-const pluginRoot = '$CLAUDE_PLUGIN_ROOT';
-const binary = require(`${pluginRoot}/lib/binary`);
-const repoIntel = require(`${pluginRoot}/lib/repo-intel`);
-```
+Recency is measured against the repo's last commit date, not the wall clock, so a quiet repo does not look dead. See the reference for the scoring details.
 
-The binary is resolved and auto-downloaded if needed via `binary.ensureBinary()`. The binary module is bundled with this plugin - no external dependency required.
+## Constraints
 
-## Core Data Contract
-
-Artifact is stored in the platform state directory:
-
-- Claude Code: `.claude/repo-intel.json`
-- OpenCode: `.opencode/repo-intel.json`
-- Codex CLI: `.codex/repo-intel.json`
-
-## Available Queries
-
-All queries delegate to `agent-analyzer repo-intel query <type>`.
-
-### Git History (Phase 1)
-
-| Query | Description |
-|-------|-------------|
-| `hotspots` | Recency-weighted most-changed files |
-| `coldspots` | Least-changed files with no recent activity |
-| `bugspots` | Files with highest bug-fix density (fix/change ratio) |
-| `coupling <file>` | Files that change together with `<file>` |
-| `ownership <path>` | Who owns a directory or file |
-| `bus-factor` | Detailed bus factor with critical owners and at-risk areas |
-| `norms` | Commit message conventions detected from history |
-| `areas` | Directory-level health overview |
-| `contributors` | Contributors sorted by commit count with staleness |
-| `release-info` | Release cadence and last release |
-| `health` | Repository health summary |
-| `file-history <file>` | Detailed history for a specific file |
-| `conventions` | Commit message style, prefixes, scope usage |
-| `test-gaps` | Hot source files with no co-changing test file |
-| `diff-risk <files>` | Score changed files by composite risk |
-| `doc-drift` | Doc files with low code coupling (likely stale) |
-| `onboard` | Newcomer-oriented repo summary |
-| `can-i-help` | Contributor guidance matching skills to areas needing work |
-| `entry-points` | Every place execution can start (binaries, `main` functions, npm scripts) |
-
-### AST Symbols (Phase 2)
-
-| Query | Description |
-|-------|-------------|
-| `painspots` | Files ranked by hotspot x (1 + bug_rate) x (1 + complexity/30) |
-| `symbols <file>` | AST exports, imports, and definitions for a file |
-| `dependents <symbol>` | Files that import a given symbol (reverse dependency) |
-
-### Doc-Code Sync (Phase 4)
-
-| Query | Description |
-|-------|-------------|
-| `stale-docs` | Doc files with stale references to source symbols |
-
-### LLM-Augmented Signals (Phase 6, requires `/repo-intel enrich` first)
-
-| Query | Description |
-|-------|-------------|
-| `find <concept>` | Concept-to-file search. Replaces `grep -r <concept>` with a ranked list and a one-line `why` per result. Without descriptors, scores from path/symbol/import/doc-header substring matches; with descriptors (populated by `enrich`), also catches semantic synonyms (worker ↔ executor) by matching against the per-file LLM descriptor. |
-| `summary [--depth 1\|3\|10]` | Cached 3-depth narrative description of the repo. depth1 = one sentence, depth3 = one paragraph, depth10 = one-page technical overview. Generated by the `repo-intel-summarizer` Haiku agent at `enrich` time. |
-
-### Slop Targeting (Phase 7, fed to `/deslop`)
-
-| Query | Description |
-|-------|-------------|
-| `slop-fixes` | Pinpoint structured fix actions for Haiku-tier execution: tracked artifacts, stale CI configs, duplicate tooling, orphan exports, empty catches, tautological tests. Each finding has a file + line range + action so the agent applies it without further research. |
-| `slop-targets` | Ranked targets for Sonnet (file-level) and Opus (cross-file) scans. Sonnet: defensive cargo cult, bot-authored, could-be-shorter. Opus: cliché clusters, wrapper towers, single-impl traits, high-bug communities. With the embedder installed, also: stylistic outliers, semantic duplicates. |
-
-### Embedder Actions (Phase 7, opt-in)
-
-| Action | Description |
-|--------|-------------|
-| `embed status` | Show whether the embedder is installed, which variant + detail level, sidecar size and last-update time. |
-| `embed update` | Delta re-embed only files whose content hash differs from the existing sidecar. Falls back to full scan if no sidecar exists. Pipes JSON to `set-embeddings`. |
-| `embed reset` | Clear the cached embedder preference so the next `/repo-intel enrich` re-prompts. Does not delete the sidecar or downloaded model — use this when changing model variant or detail level. |
-
-## Post-Init Enrichment
-
-Two Haiku-backed Task subagents fire when `/repo-intel enrich` runs:
-
-- **`repo-intel-weighter`** reads the top-500 most-active files in batches of 30, returns 1-2 sentence concrete descriptors per file as JSON between marker blocks. The skill parses the markers and pipes the JSON to `agent-analyzer repo-intel set-descriptors --input -`.
-- **`repo-intel-summarizer`** reads README + manifests + top-10 hotspot file headers, returns `{depth1, depth3, depth10, inputHash}` as JSON between marker blocks. The skill parses and pipes to `set-summary --input -`.
-
-The Rust binary itself never makes LLM calls. All orchestration lives here.
-
-## Embedder (opt-in)
-
-`enrich` also runs `agent-analyzer-embed` when the user has opted in. The choice is captured by two `AskUserQuestion` prompts on first use, persisted in `<stateDir>/sources/preference.json`:
-
-1. `embedder` — `none` (default), `small` (BGE-small Q8 ~30 MB), or `big` (EmbeddingGemma-300M Q4 ~195 MB)
-2. `embedderDetail` — `compact` (per-file × 128 dim), `balanced` (per-function × 256 dim, recommended), `maximum` (per-function × 768 dim)
-
-Subsequent enrich runs read the cached preference and proceed silently. The embed binary downloads the model file on first use (cached next to the binary in `~/.agent-sh/bin/`); model files are not bundled in the binary.
-
-Embeddings live in a sidecar file `<map_stem>.embeddings.bin` next to the JSON artifact (packed fp16, deterministic). The main JSON stays diffable; the sidecar is opaque binary.
-
-When the embedder is not installed, all queries that benefit from embeddings (`find`, `slop-targets`) work in their AST/graph-only mode — same shape, weaker signals.
-
-## Behavior Rules
-
-- **Never** call the binary without `binary.ensureBinary()` first
-- **Always** cache results after a successful init or update
-- **Prefer** incremental update unless artifact is missing
-- **Return** structured data - let the command layer format output
-
-## Recency and Staleness
-
-- **Recency window**: 90 days relative to the repo's `lastCommitDate` (not wall clock)
-- **Stale contributor**: `lastSeen` > 90 days before `lastCommitDate`
-- **Hotspot score**: `(recentChanges * 2 + totalChanges) / (totalChanges + 1)`
-- **Area health**: "healthy" / "needs-attention" / "at-risk"
-
-## Output Expectations
-
-- **init/update**: commit count, files analyzed, last commit, duration
-- **status**: age, staleness, commits behind HEAD
-- **query**: ranked list with scores, truncated to `--limit` (default 10)
+- The binary does the analysis. Do not approximate a query with `git log` or grep when the binary is missing; report the install error. Approximations look authoritative and are not.
+- `enrich` writes LLM-generated text into the artifact. The descriptors describe files; they are search aids, not facts about behavior.
+- The embedder downloads a model. Only the user opts in (see the command); unattended runs leave it off.

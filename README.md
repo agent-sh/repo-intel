@@ -162,6 +162,8 @@ After init, the artifact is cached as `repo-intel.json` in the platform state di
 ```
 /repo-intel query hotspots
     |
+    +-- scripts/repo-intel.js       (CLI the command and skill run)
+    |
     +-- lib/repo-intel/queries.js   (thin JS wrapper)
     |       |
     |       +-- agent-analyzer repo-intel query hotspots <path>
@@ -179,6 +181,8 @@ The JavaScript layer is intentionally thin - it resolves paths and parses JSON. 
 ```
 /repo-intel enrich
     |
+    +-- scripts/repo-intel.js enrich plan    (prompts + batches from the raw artifact)
+    |
     +-- Task: repo-intel-summarizer (haiku)
     |       reads README + manifests + top-10 hotspot heads,
     |       returns {depth1, depth3, depth10} as JSON between markers
@@ -190,6 +194,8 @@ The JavaScript layer is intentionally thin - it resolves paths and parses JSON. 
             --> piped through `agent-analyzer set-descriptors --input -`
 ```
 
+`enrich apply-summary` and `enrich apply-descriptors` parse the agents' marker blocks and store them; descriptors for paths the map does not know are dropped. Without a subagent tool, the model does the summarizer and weighter work itself.
+
 After enrich:
 - `query find <concept>` adds a 2.5/term descriptor signal that catches semantic synonyms (worker ↔ executor, queue ↔ channel) the deterministic scorer can't see.
 - `query summary [--depth=1|3|10]` returns the cached narrative.
@@ -198,7 +204,7 @@ Cost is bounded by the top-500 cap regardless of repo size.
 
 ## Embedder (opt-in)
 
-The first time `enrich` runs, the skill prompts (via `AskUserQuestion`) for two choices and caches them in `<stateDir>/sources/preference.json`:
+The first time `enrich` runs with a user present, the command asks two questions and records the answers with `repo-intel.js embed choose <none|small|big> [--detail=...]` in `<stateDir>/sources/preference.json`. Unattended runs, and harnesses without AskUserQuestion, skip the question and leave the embedder off:
 
 1. **`embedder`** — `none` (default) / `small` (BAAI/bge-small-en-v1.5 Q8 ~30 MB) / `big` (google/embeddinggemma-300m Q4 ~195 MB, code-aware, multilingual, recommended)
 2. **`embedderDetail`** — `compact` (per-file × 128 dim) / `balanced` (per-function × 256 dim, recommended) / `maximum` (per-function × 768 dim)
