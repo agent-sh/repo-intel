@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-04
+
+### Fixed
+
+- Windows batch-shim launches explicitly disable delayed expansion so literal exclamation
+  marks in arguments remain intact even when the user's command processor enables it.
+
 ## [0.3.0] - 2026-09-24
 
 ### Changed

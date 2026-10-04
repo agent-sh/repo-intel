@@ -1,6 +1,6 @@
 {
   "name": "repo-intel",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Unified static analysis via agent-analyzer - git history, AST symbols, project metadata, and doc-code sync",
   "keywords": [
     "git",
