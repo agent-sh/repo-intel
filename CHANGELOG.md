@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-04
+
+### Changed
+
+- Benchmark, profiling and custom CLI execution require a separate trusted host
+  authorization callback. Plain command data and cached preferences cannot authorize
+  a process. The callback approves the final immutable invocation for each launch.
+- Generic tool availability checks accept only their original fixed command and flag
+  pairs. Additional CLI probes use the callback-bound custom-source API.
+
+### Fixed
+
+- Host approval is carried through benchmark series, breaking-point searches,
+  constraints, optimization warmup and custom policy responses. Denied execution
+  starts no command child and policy failures expose no private exception details.
+
 ## [0.3.1] - 2026-10-04
 
 ### Fixed
