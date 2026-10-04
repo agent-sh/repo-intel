@@ -21,6 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Host approval is carried through benchmark series, breaking-point searches,
   constraints, optimization warmup and custom policy responses. Denied execution
   starts no command child and policy failures expose no private exception details.
+- Mistaken asynchronous host policies returning native promises from another realm
+  are denied without leaving normal rejected promises unhandled. Cleanup bypasses
+  instance method overrides and never invokes unsupported thenables.
 
 ## [0.3.1] - 2026-10-04
 
