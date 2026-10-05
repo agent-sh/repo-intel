@@ -22,7 +22,7 @@ This repo is the repo-intel plugin: unified static analysis through agent-analyz
 - `lib/repo-intel/`: the JS wrapper: init, update and status in `lib/repo-intel/index.js`, plus `lib/repo-intel/queries.js`, `lib/repo-intel/cache.js` (state dir) and `lib/repo-intel/enrich.js`.
 - `lib/collectors/git.js`: the collector pattern, load-or-init plus summary extraction.
 
-All analysis runs in the `agent-analyzer` Rust binary; the JS layer only dispatches and caches. `lib/` is synced from [agent-core](https://github.com/agent-sh/agent-core), so change library code there.
+All analysis runs in the `agent-analyzer` Rust binary; the JS layer only dispatches and caches. `lib/` is synced from [agent-core](https://github.com/agent-sh/agent-core), so change library code there. The exception is `lib/embed/`: a local copy that agent-core does not sync, used only by `test/preference.test.js` and the module-load check; the shipping code is `lib/repo-intel/embed/`.
 
 ## Checks
 
