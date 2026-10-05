@@ -1,74 +1,35 @@
 # repo-intel
 
-> Unified static analysis via agent-analyzer - git history, AST symbols, project metadata, and doc-code sync
+This repo is the repo-intel plugin: unified static analysis through agent-analyzer (git history, AST symbols, project metadata, doc-code sync). Part of the [agentsys](https://github.com/agent-sh/agentsys) ecosystem; skills follow https://agentskills.io.
 
-## Agents
+## Rules
 
-- map-validator
+- Output is plain text: no emojis or ASCII art. Status markers are `[OK]`, `[ERROR]`, `[WARN]`, `[CRITICAL]`.
+- Commit only product files. Summaries, plans and audit notes belong in the PR or the conversation.
+- A change is done when its tests pass; a feature or fix comes with a test that covers it.
+- Non-trivial changes go through a PR, not a direct push to main. Run the git hooks; do not bypass them.
+- In prose use ` - ` (single dash with spaces), not ` -- `.
+- If a script fails, report the failure before doing the step by hand, so broken tooling gets fixed.
+- Agent models: Opus for complex reasoning and planning, Sonnet for validation and most agents, Haiku for mechanical work.
+- Priorities, in order: plugin users' experience, automation that needs no babysitting, token efficiency, output quality, simplicity.
 
-## Skills
+## Layout
 
-- repo-intel
+- `commands/repo-intel.md`: the `/repo-intel` command (init, update, enrich, status, query, embed).
+- `skills/repo-intel/SKILL.md`: the skill; the query catalog is `skills/repo-intel/references/queries.md`.
+- `agents/`: `map-validator` (sanity check of a build summary), `repo-intel-summarizer` and `repo-intel-weighter` (the two Haiku agents behind `enrich`).
+- `scripts/repo-intel.js`: the CLI every action runs through; it prints JSON.
+- `lib/repo-intel/`: the JS wrapper: init, update and status in `lib/repo-intel/index.js`, plus `lib/repo-intel/queries.js`, `lib/repo-intel/cache.js` (state dir) and `lib/repo-intel/enrich.js`.
+- `lib/collectors/git.js`: the collector pattern, load-or-init plus summary extraction.
 
-## Commands
+All analysis runs in the `agent-analyzer` Rust binary; the JS layer only dispatches and caches. `lib/` is synced from [agent-core](https://github.com/agent-sh/agent-core), so change library code there. The exception is `lib/embed/`: a local copy that agent-core does not sync, used only by `test/preference.test.js` and the module-load check; the shipping code is `lib/repo-intel/embed/`.
 
-- repo-intel
-
-## Critical Rules
-
-1. **Plain text output** - No emojis, no ASCII art. Use `[OK]`, `[ERROR]`, `[WARN]`, `[CRITICAL]` for status markers.
-2. **No unnecessary files** - Don't create summary files, plan files, audit files, or temp docs.
-3. **Task is not done until tests pass** - Every feature/fix must have quality tests.
-4. **Create PRs for non-trivial changes** - No direct pushes to main.
-5. **Always run git hooks** - Never bypass pre-commit or pre-push hooks.
-6. **Use single dash for em-dashes** - In prose, use ` - ` (single dash with spaces), never ` -- `.
-7. **Report script failures before manual fallback** - Never silently bypass broken tooling.
-8. **Token efficiency** - Save tokens over decorations.
-
-## Model Selection
-
-| Model | When to Use |
-|-------|-------------|
-| **Opus** | Complex reasoning, analysis, planning |
-| **Sonnet** | Validation, pattern matching, most agents |
-| **Haiku** | Mechanical execution, no judgment needed |
-
-## Core Priorities
-
-1. User DX (plugin users first)
-2. Worry-free automation
-3. Token efficiency
-4. Quality output
-5. Simplicity
-
-## Dev Commands
+## Checks
 
 ```bash
-npm test          # Run tests
-npm run validate  # All validators
+npm test          # module load, enrich, preference, CLI and authorization tests
+npm run validate  # module load only
+agnix .           # agent config lint
 ```
 
-## Architecture
-
-- `lib/repo-intel/` - JS wrapper: `index.js` (init/update/status), `queries.js` (24 query types), `cache.js` (state dir management)
-- `lib/collectors/git.js` - collector pattern: load-or-init + summary extraction
-- `commands/repo-intel.md` - command definition
-- `skills/repo-intel/SKILL.md` - skill definition
-- `agents/map-validator.md` - lightweight output validator (Haiku)
-
-All analysis runs in the `agent-analyzer` Rust binary. The JS layer is purely dispatch and caching.
-
-## References
-
-- Part of the [agentsys](https://github.com/agent-sh/agentsys) ecosystem
-- Powered by [agent-analyzer](https://github.com/agent-sh/agent-analyzer)
-- https://agentskills.io
-
-## Validation scope
-
-Choose checks that cover the changed behavior. For CPU-only tooling, documentation
-and configuration changes, run the relevant CPU tests, static checks and configuration
-validation. Do not require a blanket GPU gate for those changes. Require GPU
-qualification when GPU, runtime or model behavior, or related claims, change.
-Preserve applicable native, model and hardware qualification gates. CPU checks do
-not qualify GPU behavior.
+User-visible changes get a CHANGELOG entry under `[Unreleased]`.
