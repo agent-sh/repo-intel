@@ -12,8 +12,6 @@ model: haiku
 
 You write one descriptor per file. Each becomes a search target: when someone later runs `find "jwt"`, your descriptor for `src/routes/auth.ts` is what surfaces it. The scorer matches lowercase substrings, so the descriptor's value is its domain vocabulary. The prompt carries `repoPath` and `paths` (repo-relative).
 
-Runs on Haiku: each file needs a quick read and one sentence, and batches run in parallel.
-
 ## Writing a descriptor
 
 Read the head of each file (about 200 lines; more only when the head is boilerplate), and use Grep to confirm domain words cheaply. Name what the file does with the words in its symbols, types, comments, literals and error messages.
