@@ -135,5 +135,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Rewrote `queries.js` from 389-line self-contained JS implementation to thin binary delegation via `runQuery()`; all analysis logic now lives in the agent-analyzer Rust binary
 - Renamed cache file from `git-map.json` to `repo-intel.json` to reflect the broader artifact scope
 
-[Unreleased]: https://github.com/agent-sh/repo-intel/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/agent-sh/repo-intel/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/agent-sh/repo-intel/compare/v0.4.0...v0.5.0
 [0.1.0]: https://github.com/agent-sh/repo-intel/releases/tag/v0.1.0
